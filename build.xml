@@ -1,0 +1,179 @@
+<?xml version="1.0"?>
+
+<project name="Deidentifier" basedir="." default="all">
+
+	<property name="build" value="${basedir}/build"/>
+	<property name="products" value="${basedir}/products"/>
+	<property name="libraries" value="${basedir}/libraries"/>
+	<property name="documentation" value="${basedir}/documentation"/>
+
+	<property name="source" value="${basedir}/source"/>
+	<property name="java" value="${source}/java"/>
+	<property name="files" value="${source}/files"/>
+	<property name="resources" value="${source}/resources"/>
+	<property name="installer" value="org/jp/installer"/>
+	<property name="deidentifier" value="org/jp/deidentifier"/>
+
+	<property name="ctp" value="/Development/CTP"/>
+
+	<property name="title" value="FileEditor"/>
+	<property name="copyright" value="Copyright 2020 JP"/>
+
+	<path id="classpath">
+		<pathelement location="${libraries}/libraries/dcm4che.jar"/>
+		<pathelement location="${libraries}/libraries/log4j.jar"/>
+		<pathelement location="${libraries}/libraries/getopt.jar"/>
+		<pathelement location="${libraries}/libraries/CTP.jar"/>
+		<pathelement location="${libraries}/libraries/util.jar"/>
+		<pathelement location="${libraries}/libraries/jdbm.jar"/>
+		<pathelement location="${libraries}/libraries/poi/commons-codec-1.10.jar"/>
+		<pathelement location="${libraries}/libraries/poi/commons-collections4-4.1.jar"/>
+		<pathelement location="${libraries}/libraries/poi/commons-logging-1.2.jar"/>
+		<pathelement location="${libraries}/libraries/poi/poi-3.17.jar"/>
+		<pathelement location="${libraries}/libraries/poi/poi-ooxml-3.17.jar"/>
+		<pathelement location="${libraries}/libraries/poi/poi-ooxml-schemas-3.17.jar"/>
+		<pathelement location="${libraries}/libraries/poi/xmlbeans-2.6.0.jar"/>
+	</path>
+
+	<target name="init">
+		<tstamp>
+			<format property="today" pattern="yyyy.MM.dd"/>
+			<format property="now" pattern="HH:mm:ss z"/>
+		</tstamp>
+		<echo message="Time now ${now}"/>
+		<echo message="ant.java.version = ${ant.java.version}" />
+		<mkdir dir="${build}"/>
+		<mkdir dir="${products}"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${build}" failonerror="false"/>
+		<delete dir="${documentation}" failonerror="false"/>
+	</target>
+
+	<target name="getLibraryJars">
+		<copy overwrite="true" todir="${libraries}/libraries">
+			<fileset dir="${ctp}/libraries">
+				<include name="CTP.jar"/>
+				<include name="dcm4che.jar"/>
+				<include name="log4j.jar"/>
+				<include name="util.jar"/>
+				<include name="jdbm.jar"/>
+			</fileset>
+		</copy>
+		<copy overwrite="true" todir="${libraries}/libraries/imageio">
+			<fileset dir="${ctp}/libraries">
+				<include name="dcm4che-imageio-rle-2.0.25.jar"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="build" depends="init, getLibraryJars">
+
+		<javac srcdir="${java}" destdir="${build}" optimize="on"
+			classpathref="classpath"
+			includeantruntime="false"
+			debug="true" debuglevel="lines,vars,source">
+			<compilerarg value="-Xlint:unchecked"/>
+			<compilerarg value="-Xlint:deprecation"/>
+		</javac>
+			
+		<copy overwrite="true" todir="${build}">
+			<fileset dir="${resources}"/>
+		</copy>
+
+		<jar destfile="${products}/Deidentifier.jar">
+			<manifest>
+				<attribute name="Main-Class" value="org.jp.deidentifier.Deidentifier"/>
+				<attribute name="Class-Path" 
+					value="
+libraries/dcm4che.jar 
+libraries/getopt.jar
+libraries/log4j.jar 
+libraries/CTP.jar 
+libraries/util.jar 
+libraries/jdbm.jar 
+libraries/jai_imageio-1.2-pre-dr-b04.jar 
+libraries/poi/commons-codec-1.10.jar 
+libraries/poi/commons-collections4-4.1.jar 
+libraries/poi/commons-logging-1.2.jar
+libraries/poi/poi-3.17.jar 
+libraries/poi/poi-ooxml-3.17.jar 
+libraries/poi/poi-ooxml-schemas-3.17.jar 
+libraries/poi/xmlbeans-2.6.0.jar
+libraries/imageio/clibwrapper_jiio-1.2-pre-dr-b04.jar
+libraries/imageio/jai_imageio-1.2-pre-dr-b04.jar
+libraries/imageio/pixelmed_codec.jar
+libraries/imageio/pixelmed_imageio.jar
+libraries/imageio/slf4j-api-1.6.1.jar
+libraries/imageio/slf4j-log4j12-1.6.1.jar
+libraries/imageio/twelvemonkeys-common-image-3.6-SNAPSHOT.jar
+libraries/imageio/twelvemonkeys-common-io-3.6-SNAPSHOT.jar
+libraries/imageio/twelvemonkeys-common-lang-3.6-SNAPSHOT.jar
+libraries/imageio/twelvemonkeys-imageio-core-3.6-SNAPSHOT.jar
+libraries/imageio/twelvemonkeys-imageio-jpeg-3.6-SNAPSHOT.jar
+libraries/imageio/twelvemonkeys-imageio-metadata-3.6-SNAPSHOT.jar
+"/>
+			</manifest>
+			<fileset dir="${build}"
+				includes="${deidentifier}/** icons/**"
+				excludes="${installer}/Installer**"/>
+		</jar>
+
+		<mkdir dir="${build}/Deidentifier"/>
+
+		<copy overwrite="true" todir="${build}/Deidentifier">
+			<fileset dir="${products}" includes="Deidentifier.jar"/>
+			<fileset dir="${libraries}" includes="libraries/**"/>
+			
+			<!--
+			<fileset dir="${libraries}" includes="dcm4che.jar"/>
+			<fileset dir="${libraries}" includes="dicom.jar"/>
+			<fileset dir="${libraries}" includes="log4j.jar"/>
+			<fileset dir="${libraries}" includes="getopt.jar"/>
+			<fileset dir="${libraries}" includes="CTP.jar"/>
+			<fileset dir="${libraries}" includes="util.jar"/>
+			<fileset dir="${libraries}" includes="jdbm.jar"/>
+			<fileset dir="${libraries}" includes="jai_imageio-1.2-pre-dr-b04.jar"/>
+			<fileset dir="${libraries}" includes="poi/commons-codec-1.10.jar"/>
+			<fileset dir="${libraries}" includes="poi/commons-collections4-4.1.jar"/>
+			<fileset dir="${libraries}" includes="poi/commons-logging-1.2.jar"/>
+			<fileset dir="${libraries}" includes="poi/poi-3.17.jar"/>
+			<fileset dir="${libraries}" includes="poi/poi-ooxml-3.17.jar"/>
+			<fileset dir="${libraries}" includes="poi/poi-ooxml-schemas-3.17.jar"/>
+			<fileset dir="${libraries}" includes="poi/xmlbeans-2.6.0.jar"/>
+			-->
+			
+			<fileset dir="${files}" includes="*.*"/>
+		</copy>
+
+		<jar destfile="${products}/Deidentifier-installer.jar">
+			<manifest>
+				<attribute name="Main-Class" value="org.jp.installer.Installer"/>
+				<attribute name="Implementation-Version" value="${today} @ ${now}"/>
+				<attribute name="Date" value="${today} at ${now}"/>
+				<attribute name="Description" value="DICOM Deidentifier Program"/>
+			</manifest>
+			<fileset dir="${build}"
+				includes="${installer}/Installer** org/rsna/** Deidentifier/**"/>
+		</jar>
+
+	</target>
+
+	<target name="javadocs">
+		<mkdir dir="${documentation}"/>
+		<javadoc destdir="${documentation}" sourcepath="${java}" classpathref="classpath"
+			doctitle="${title}" windowtitle="${title}" bottom="${copyright}">
+			<package name="*"/>
+		</javadoc>
+	</target>
+	
+	<target name="release">
+		<copy overwrite="true" todir="/Casa/Website/ROOT/wings/misc">
+			<fileset dir="${products}" includes="Deidentifier-installer.jar"/>
+		</copy>
+	</target>
+
+	<target name="all" depends="clean, build, release"/>
+
+</project>
