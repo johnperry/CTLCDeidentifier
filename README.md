@@ -1,5 +1,5 @@
 # CTLCDeidentifier
-CT Lung Cancer Dataset Deidentification Deidentifier program allows users to deidentify and
+CT Lung Cancer Dataset Deidentifier program allows users to deidentify and
 submit CT studies and metadata to the 
 Early Lung Imaging Confederation dataset. It includes a DICOM anonymizer to remove PHI before
 submission. The anonymizer is pre-configured to meet the requirements for submission, but users
