@@ -136,96 +136,109 @@ public class RightPanel extends JPanel
 
 	// Anonymize the selected file(s).
 	private void anonymize(File file) {
-		if (file.isFile()) {
-			resultsPane.newItem(file.getAbsolutePath());
-			DicomObject dob;
-			if ( (dob=getDicomObject(file)) != null ) {
-				File temp;
-				File outputDir;
-				try { 
-					outputDir = Configuration.getInstance().getOutputDir();
-					outputDir.mkdirs();
-					temp = File.createTempFile("TEMP-", ".dcm", outputDir);
-				}
-				catch (Exception ex) {
-					resultsPane.print(Color.red, "Unable to copy file.\n");
-					return;
-				}
-				String origPtName = dob.getPatientName();
-				String origPtID = dob.getPatientID();
-				String origStudyDate = dob.getStudyDate();
-				String origAccessionNumber = dob.getAccessionNumber();
+		File temp = null;
+		try {
+			if (file.isFile()) {
+				resultsPane.newItem(file.getAbsolutePath());
+				DicomObject dob;
+				if ( (dob=getDicomObject(file)) != null ) {
+					File outputDir;
+					try { 
+						outputDir = Configuration.getInstance().getOutputDir();
+						outputDir.mkdirs();
+						temp = File.createTempFile("TEMP-", ".dcm", outputDir);
+					}
+					catch (Exception ex) {
+						resultsPane.print(Color.red, "Unable to copy file.\n");
+						if (temp != null) temp.delete();
+						return;
+					}
+					String origPtName = dob.getPatientName();
+					String origPtID = dob.getPatientID();
+					String origStudyDate = dob.getStudyDate();
+					String origAccessionNumber = dob.getAccessionNumber();
 
-				String result = "";
-				DAScript dicomScript = DAScript.getInstance( new File(dicomScriptFile) );
-				LookupTable lookupTable = LookupTable.getInstance(new File(lookupTableFile) );
-				dob.copyTo(temp);
-				result =
-					DICOMAnonymizer.anonymize(
-						temp, temp,
-						dicomScript.toProperties(), lookupTable.getProperties(), integerTable,
-						forceIVRLE, renameToSOPIUID).isOK() ? "" : "failed";;
+					String result = "";
+					DAScript dicomScript = DAScript.getInstance( new File(dicomScriptFile) );
+					LookupTable lookupTable = LookupTable.getInstance(new File(lookupTableFile) );
+					dob.copyTo(temp);
+					result =
+						DICOMAnonymizer.anonymize(
+							temp, temp,
+							dicomScript.toProperties(), lookupTable.getProperties(), integerTable,
+							forceIVRLE, renameToSOPIUID).isOK() ? "" : "failed";;
 
-				//Report the results
-				if (!result.equals("")) {
-					resultsPane.print(Color.red,"Failed\n");
+					//Report the results
+					if (!result.equals("")) {
+						resultsPane.print(Color.red,"Failed\n");
+						if (temp != null) temp.delete();
+					}
+					else {
+						resultsPane.print(Color.black,"OK\n");
+						// Get the spoke name
+						Properties daprops = dicomScript.toProperties();
+						String spokeName = daprops.getProperty("param.SPOKENAME");
+
+						//Figure out where to put the temp file.
+						//It is already in the root of the outputDir.
+						//It needs to go in the appropriate series subdirectory
+						dob = getDicomObject(temp);
+						String anonPtName = dob.getPatientName();
+						String anonPtID = dob.getPatientID();
+						String anonSOPInstanceUID = dob.getSOPInstanceUID();
+						String anonStudyInstanceUID = dob.getStudyInstanceUID();
+						String anonSeriesInstanceUID = dob.getSeriesInstanceUID();
+						String anonStudyDate = dob.getStudyDate();
+						String anonStudyTime = dob.getStudyTime();
+						int k = anonStudyTime.indexOf(".");
+						k = (k >= 0) ? k : anonStudyTime.length();
+						anonStudyTime = anonStudyTime.substring(0,k);
+						String anonSeriesNumber = dob.getSeriesNumber();
+						String anonInstanceNumber = dob.getInstanceNumber();
+						String anonAccessionNumber = dob.getAccessionNumber();
+						GregorianCalendar gc = new GregorianCalendar();
+						int year = gc.get(gc.YEAR);
+						int mon = gc.get(gc.MONTH) + 1;
+						int day = gc.get(gc.DAY_OF_MONTH);
+						String date = String.format("%4d%02d%02d", year, mon, day);
+						File imgdir = new File(outputDir, 
+										  spokeName+"-DataUpload-"+date + "/"
+										+ anonPtName + "/" 
+										+ "Study-"+anonStudyDate+"T"+anonStudyTime + "/" 
+										+ "Series-"+anonSeriesNumber);
+						imgdir.mkdirs();
+						File dest = new File(imgdir, "Image-"+anonInstanceNumber+".dcm");
+
+						//Move the file to the correct directory.
+						if (dest.exists()) dest.delete();
+						temp.renameTo(dest);
+
+						//Update the index
+						Index index = Index.getInstance();
+						index.addPatient(origPtName, origPtID, anonPtName, anonPtID);
+						index.addStudy(origPtID, origStudyDate, origAccessionNumber, anonStudyDate, anonAccessionNumber);
+					}
 				}
 				else {
-					resultsPane.print(Color.black,"OK\n");
-					// Get the spoke name
-					Properties daprops = dicomScript.toProperties();
-					String spokeName = daprops.getProperty("param.SPOKENAME");
-
-					//Figure out where to put the temp file.
-					//It is already in the root of the outputDir.
-					//It needs to go in the appropriate series subdirectory
-					dob = getDicomObject(temp);
-					String anonPtName = dob.getPatientName();
-					String anonPtID = dob.getPatientID();
-					String anonSOPInstanceUID = dob.getSOPInstanceUID();
-					String anonStudyInstanceUID = dob.getStudyInstanceUID();
-					String anonSeriesInstanceUID = dob.getSeriesInstanceUID();
-					String anonStudyDate = dob.getStudyDate();
-					String anonStudyTime = dob.getStudyTime();
-					int k = anonStudyTime.indexOf(".");
-					k = (k >= 0) ? k : anonStudyTime.length();
-					anonStudyTime = anonStudyTime.substring(0,k);
-					String anonSeriesNumber = dob.getSeriesNumber();
-					String anonInstanceNumber = dob.getInstanceNumber();
-					String anonAccessionNumber = dob.getAccessionNumber();
-					GregorianCalendar gc = new GregorianCalendar();
-					int year = gc.get(gc.YEAR);
-					int mon = gc.get(gc.MONTH) + 1;
-					int day = gc.get(gc.DAY_OF_MONTH);
-					String date = String.format("%4d%02d%02d", year, mon, day);
-					File imgdir = new File(outputDir, 
-									  spokeName+"-DataUpload-"+date + "/"
-									+ anonPtName + "/" 
-									+ "Study-"+anonStudyDate+"T"+anonStudyTime + "/" 
-									+ "Series-"+anonSeriesNumber);
-					imgdir.mkdirs();
-					File dest = new File(imgdir, "Image-"+anonInstanceNumber+".dcm");
-
-					//Move the file to the correct directory.
-					if (dest.exists()) dest.delete();
-					temp.renameTo(dest);
-
-					//Update the index
-					Index index = Index.getInstance();
-					index.addPatient(origPtName, origPtID, anonPtName, anonPtID);
-					index.addStudy(origPtID, origStudyDate, origAccessionNumber, anonStudyDate, anonAccessionNumber);
+					resultsPane.print(Color.red,"Not a DICOM file\n");
 				}
 			}
 			else {
-				resultsPane.print(Color.red,"Not a DICOM file\n");
+				try {
+					File[] files = file.listFiles(filter);
+					for (File f : files) {
+						if (f.isFile() || subdirectories) anonymize(f);
+					}
+				}
+				catch (Exception ex) {
+					resultsPane.print(Color.red, file+" appears to be a corrupt directory\n");
+				}
 			}
-			return;
 		}
-		else {
-			File[] files = file.listFiles(filter);
-			for (File f : files) {
-				if (f.isFile() || subdirectories) anonymize(f);
-			}
+		catch (Exception ex) {
+			StringWriter sw = new StringWriter();
+			ex.printStackTrace(new PrintWriter(sw));
+			resultsPane.print(Color.red,"\n"+sw.toString()+"\n");
 		}
 	}
 	
