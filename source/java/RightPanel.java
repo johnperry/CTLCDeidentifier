@@ -137,8 +137,8 @@ public class RightPanel extends JPanel
 	// Anonymize the selected file(s).
 	private void anonymize(File file) {
 		File temp = null;
-		try {
-			if (file.isFile()) {
+		if (file.isFile()) {
+			try {
 				resultsPane.newItem(file.getAbsolutePath());
 				DicomObject dob;
 				if ( (dob=getDicomObject(file)) != null ) {
@@ -223,22 +223,22 @@ public class RightPanel extends JPanel
 					resultsPane.print(Color.red,"Not a DICOM file\n");
 				}
 			}
-			else {
-				try {
-					File[] files = file.listFiles(filter);
-					for (File f : files) {
-						if (f.isFile() || subdirectories) anonymize(f);
-					}
-				}
-				catch (Exception ex) {
-					resultsPane.print(Color.red, file+" appears to be a corrupt directory\n");
-				}
+			catch (Exception ex) {
+				StringWriter sw = new StringWriter();
+				ex.printStackTrace(new PrintWriter(sw));
+				resultsPane.print(Color.red,"\n"+sw.toString()+"\n");
 			}
 		}
-		catch (Exception ex) {
-			StringWriter sw = new StringWriter();
-			ex.printStackTrace(new PrintWriter(sw));
-			resultsPane.print(Color.red,"\n"+sw.toString()+"\n");
+		else {
+			try {
+				File[] files = file.listFiles(filter);
+				for (File f : files) {
+					if (f.isFile() || subdirectories) anonymize(f);
+				}
+			}
+			catch (Exception ex) {
+				resultsPane.print(Color.red, file+" appears to be a corrupt directory\n");
+			}
 		}
 	}
 	
