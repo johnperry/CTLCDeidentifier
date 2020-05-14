@@ -35,6 +35,7 @@ public class Deidentifier extends JFrame implements ChangeListener {
     private RightPanel				rightPanel;
     private Viewer 					viewerPanel;
     private Editor 					editorPanel;
+    private FilterPanel				filterPanel;
     private AnonymizerPanel			anonymizerPanel;
     private SubmissionPanel			submissionPanel;
     private IndexPanel				indexPanel;
@@ -83,6 +84,7 @@ public class Deidentifier extends JFrame implements ChangeListener {
 		anonymizerPanel = new AnonymizerPanel();
 		viewerPanel = new Viewer();
 		editorPanel = new Editor();
+		filterPanel = FilterPanel.getInstance();
 		submissionPanel = new SubmissionPanel();
 		indexPanel = new IndexPanel();
 		helpPanel = new HtmlJPanel( FileUtil.getText( new File(config.helpfile) ) );
@@ -91,6 +93,7 @@ public class Deidentifier extends JFrame implements ChangeListener {
 			splitPanel,
 			viewerPanel,
 			editorPanel,
+			filterPanel,
 			anonymizerPanel,
 			submissionPanel,
 			indexPanel,
@@ -125,6 +128,7 @@ public class Deidentifier extends JFrame implements ChangeListener {
 		public void addTabs(JPanel source,
 						 Viewer viewer,
 						 Editor editor,
+						 FilterPanel filter,
 						 AnonymizerPanel script,
 						 SubmissionPanel submission,
 						 IndexPanel index,
@@ -132,6 +136,7 @@ public class Deidentifier extends JFrame implements ChangeListener {
 			tabbedPane.addTab("Directory", source);
 			tabbedPane.addTab("Viewer", viewer);
 			tabbedPane.addTab("Elements", editor);
+			tabbedPane.addTab("Filter", filter);
 			tabbedPane.addTab("Script", script);
 			tabbedPane.addTab("Submission", submission);
 			tabbedPane.addTab("Index", index);

@@ -137,11 +137,20 @@ public class RightPanel extends JPanel
 	// Anonymize the selected file(s).
 	private void anonymize(File file) {
 		File temp = null;
+		FilterPanel fp = FilterPanel.getInstance();
+		String filterScript = fp.getText().trim();
+		boolean filterSRs = fp.getFilterSRs();
+		boolean filterSCs = fp.getFilterSCs();
+		boolean filterResult = true;
 		if (file.isFile()) {
 			try {
 				resultsPane.newItem(file.getAbsolutePath());
 				DicomObject dob;
-				if ( (dob=getDicomObject(file)) != null ) {
+				if ( ((dob=getDicomObject(file)) != null)
+						&& ( dob.isImage() )
+						&& ( !filterSCs || !dob.isSecondaryCapture() )
+						&& ( !filterSRs || !dob.isSR() )
+						&& ( filterResult=((filterScript.length() == 0) || dob.matches(filterScript)) ) ) {
 					File outputDir;
 					try { 
 						outputDir = Configuration.getInstance().getOutputDir();
@@ -220,7 +229,12 @@ public class RightPanel extends JPanel
 					}
 				}
 				else {
-					resultsPane.print(Color.red,"Not a DICOM file\n");
+					if (dob == null) resultsPane.println(Color.red,"    File rejected (not a DICOM file)");
+					else if (!dob.isImage()) resultsPane.println(Color.red,"    File rejected (not an image)");
+					else if (filterSRs && dob.isSR()) resultsPane.println(Color.red,"    File rejected (Structured Report)");
+					else if (filterSCs && dob.isSecondaryCapture()) resultsPane.println(Color.red,"    File rejected (Secondary Capture)");
+					else if (!filterResult) resultsPane.println(Color.red,"    File rejected (filter)");
+					else resultsPane.println(Color.red,"    File rejected (unknown reason)");
 				}
 			}
 			catch (Exception ex) {
@@ -281,6 +295,9 @@ public class RightPanel extends JPanel
 		}
 		public void print(Color c, String s) {
 			text.print(c, margin + s);
+		}
+		public void println(Color c, String s) {
+			text.print(c, margin + s + "\n");
 		}
 	}
 
