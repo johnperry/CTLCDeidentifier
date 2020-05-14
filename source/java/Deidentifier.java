@@ -17,6 +17,7 @@ import org.rsna.ui.ApplicationProperties;
 import org.rsna.ui.SourcePanel;
 import org.rsna.util.BrowserUtil;
 import org.rsna.util.FileUtil;
+import org.rsna.util.JarUtil;
 import org.rsna.util.StringUtil;
 
 /**
@@ -57,6 +58,15 @@ public class Deidentifier extends JFrame implements ChangeListener {
     public Deidentifier() {
 		super();
 		Configuration config = Configuration.getInstance();
+		
+		//Put the build date/time in the window title
+		try {
+			File program = new File("Deidentifier.jar");
+			String date = JarUtil.getManifestAttributes(program).get("Date");
+			windowTitle += " - " + date;
+		}
+		catch (Exception ignore) { }
+				
 		setTitle(windowTitle);
 		addWindowListener(new WindowCloser(this));
 		mainPanel = new MainPanel();

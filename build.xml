@@ -85,6 +85,8 @@
 		<jar destfile="${products}/Deidentifier.jar">
 			<manifest>
 				<attribute name="Main-Class" value="org.jp.deidentifier.Deidentifier"/>
+	            <attribute name="Date" value="${today} at ${now}"/>
+				<attribute name="Java-Version" value="${ant.java.version}"/>
 				<attribute name="Class-Path" 
 					value="
 libraries/dcm4che.jar 
