@@ -135,22 +135,34 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			for (File patient : patients) {
 				int studyNumber = 1;
 				int seriesNumber = 1;
+				String patientSex = "";
+				dob = getFirstDicomObject(patient);
+				if (dob != null) {
+					patientSex = dob.getElementValue("PatientSex");
+				}
 				
 				String pn = patient.getName();
 				PatientIndexEntry ie = Index.getInstance().getInvEntry(pn);
 				String ies = (ie != null) ? ie.toString() : null;
-				//System.out.println("pn: \"" + pn + "\"; ies: "+(ies!=null ? ies.toString() : "null"));				
+				String phiPatientID = (ie != null) ? ie.id : "";
 				centerPanel.addSectionRow("Patient", ies, 1);
 				
 				centerPanel.addItemRow("PatientName", patient.getName(), 2);
-				ItemValue ptsex = centerPanel.addItemRow("PatientSex", "", 2);
+				centerPanel.addItemRow("PatientSex", patientSex, 2);
 				centerPanel.addItemComboBoxRow("LungCancerHistory", cancerHistory, 2);
 				centerPanel.addItemFieldRow("DaysFromFirstStudyToDiagnosis", "", 2);
 				File[] studies = patient.listFiles(dirsOnly);
 				centerPanel.addItemRow("NStudies", Integer.toString(studies.length), 2);
 				for (File study : studies) {
-					centerPanel.addSectionRow("Study", 2);
-					ItemValue ptage = centerPanel.addItemRow("PatientAge", "", 3);
+					String patientAge = "";
+					dob = getFirstDicomObject(study);
+					if (dob != null) {
+						patientAge = dob.getElementValue("PatientAge");
+					}
+					
+					String phi = getStudyPHI(phiPatientID, study);
+					centerPanel.addSectionRow("Study", phi, 2);
+					centerPanel.addItemRow("PatientAge", patientAge, 3);
 					centerPanel.addItemFieldRow("PackYears", "", 3);
 					centerPanel.addItemComboBoxRow("SmokingStatus", smokingStatus, 3);
 					centerPanel.addItemRow("Path", getPath(patient, study), 3);
@@ -163,19 +175,9 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						ItemValue noduleCount = centerPanel.addItemRow("Nodules", "0", 4);
 						centerPanel.addItemRow("Path", getPath(patient, ser), 4);
 						centerPanel.addItemComboBoxRow("Category", categories, 4);
-						centerPanel.addItemComboBoxRow("SModifier", yesNo, 4);
-						centerPanel.addItemComboBoxRow("CModifier", yesNo, 4);
+						centerPanel.addRadioPanelRow("SModifier", yesNo, 4);
+						centerPanel.addRadioPanelRow("CModifier", yesNo, 4);
 						centerPanel.addNoduleButtonRow(1, noduleCount);
-						if (firstSeries) {
-							File img = ser.listFiles()[0];
-							try {
-								dob = new DicomObject(img);
-								ptsex.setText(dob.getElementValue("PatientSex"));
-								ptage.setText(dob.getElementValue("PatientAge"));
-								firstSeries = false;
-							}
-							catch (Exception tryAgain) { }
-						}
 					}
 				}
 			}
@@ -184,11 +186,57 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		centerPanel.revalidate();
 	}
 	
+	private String getStudyPHI(String phiPatientID, File dir) {
+		Study[] indexedStudies = Index.getInstance().listStudiesFor(phiPatientID);
+		try {
+			DicomObject dob = getFirstDicomObject(dir);
+			String modality = dob.getModality();
+			String studyDate = dob.getStudyDate();
+			String accession = dob.getAccessionNumber();
+			for (Study study : indexedStudies) {
+				if (study.anonAccession.equals(accession)
+						&& study.anonDate.equals(studyDate)) {
+					studyDate = study.phiDate;
+					accession = study.phiAccession;
+					studyDate = studyDate.substring(0,4) + "." +
+								studyDate.substring(4,6) + "." +
+								studyDate.substring(6,8);
+					if (accession.equals("")) {
+						return studyDate + " ["+modality+"]";
+					}
+					else {
+						return studyDate + " / " + accession + " ["+modality+"]";
+					}						
+				}
+			}
+		}
+		catch (Exception ex) { }
+		return "";
+	}
+	
+	private DicomObject getFirstDicomObject(File dir) {
+		DicomObject dob;
+		File[] files = dir.listFiles();
+		for (File file : files) {
+			if (file.isFile()) {
+				try { 
+					dob = new DicomObject(file);
+					return dob;
+				}
+				catch (Exception notDICOM) { }
+			}
+		}
+		for (File file : files) {
+			if (file.isDirectory()) {
+				return getFirstDicomObject(file);
+			}
+		}
+		return null;
+	}		
+	
 	//Rename the files in one submission directory
 	//using the conventions in the ELIC project.
-	private void reorganizeFiles(File dir) {
-		
-	}
+	private void reorganizeFiles(File dir) { }
 	
 	private String getPath(File base, File dir) {
 		File root = base.getAbsoluteFile().getParentFile();
@@ -234,8 +282,20 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			return c;
 		}
 		
+		public SectionLabel addSectionRow(LinkedList<Component>list, String title, String value, int level) {
+			SectionLabel c = new SectionLabel(title, level);
+			list.add(c);
+			if (value != null) list.add(new SectionValue(value));
+			list.add(RowLayout.crlf());
+			return c;
+		}
+		
 		public SectionLabel addSectionRow(String title, int level) {
 			return addSectionRow(title, null, level);
+		}
+		
+		public SectionLabel addSectionRow(LinkedList<Component>list, String title, int level) {
+			return addSectionRow(list, title, null, level);
 		}
 		
 		public ItemValue addItemRow(String title, String text, int level) {
@@ -243,6 +303,14 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			ItemValue c = new ItemValue(text);
 			add(c);
 			add(RowLayout.crlf());
+			return c;
+		}
+		
+		public ItemValue addItemRow(LinkedList<Component>list, String title, String text, int level) {
+			list.add(new ItemLabel(title, level));
+			ItemValue c = new ItemValue(text);
+			list.add(c);
+			list.add(RowLayout.crlf());
 			return c;
 		}
 		
@@ -254,6 +322,14 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			return c;
 		}
 			
+		public ItemField addItemFieldRow(LinkedList<Component>list, String title, String text, int level) {
+			list.add(new ItemLabel(title, level));
+			ItemField c = new ItemField(text);
+			list.add(c);
+			list.add(RowLayout.crlf());
+			return c;
+		}
+			
 		public ItemComboBox addItemComboBoxRow(String title, String[] text, int level) {
 			add(new ItemLabel(title, level));
 			ItemComboBox c = new ItemComboBox(text, 0);
@@ -262,12 +338,45 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			return c;
 		}
 		
+		public ItemComboBox addItemComboBoxRow(LinkedList<Component>list, String title, String[] text, int level) {
+			list.add(new ItemLabel(title, level));
+			ItemComboBox c = new ItemComboBox(text, 0);
+			list.add(c);
+			list.add(RowLayout.crlf());
+			return c;
+		}
+		
+		public RadioPanel addRadioPanelRow(String title, String[] options, int level) {
+			add(new ItemLabel(title, level));
+			RadioPanel rp = new RadioPanel(options);
+			add(rp);
+			add(RowLayout.crlf());
+			return rp;
+		}		
+		
+		public RadioPanel addRadioPanelRow(LinkedList<Component>list, String title, String[] options, int level) {
+			list.add(new ItemLabel(title, level));
+			RadioPanel rp = new RadioPanel(options);
+			list.add(rp);
+			list.add(RowLayout.crlf());
+			return rp;
+		}		
+		
 		public NoduleButton addNoduleButtonRow(int n, ItemValue noduleCount) {
 			add(Box.createHorizontalStrut(10));
 			NoduleButton nb = new NoduleButton(n, noduleCount);
 			nb.addActionListener(this);
 			add(nb);
 			add(RowLayout.crlf());
+			return nb;
+		}		
+		
+		public NoduleButton addNoduleButtonRow(LinkedList<Component>list, int n, ItemValue noduleCount) {
+			list.add(Box.createHorizontalStrut(10));
+			NoduleButton nb = new NoduleButton(n, noduleCount);
+			nb.addActionListener(this);
+			list.add(nb);
+			list.add(RowLayout.crlf());
 			return nb;
 		}		
 		
@@ -368,6 +477,11 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						String text = (String)val.getSelectedItem();
 						sb.append(text + ",");
 					}
+					else if (c instanceof RadioPanel) {
+						RadioPanel val = (RadioPanel)c;
+						String text = val.getText();
+						sb.append(text + ",");
+					}
 				}
 				File metadata = new File(dir, "metadata.csv");
 				FileUtil.setText(metadata, sb.toString());
@@ -434,6 +548,12 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					else if (c instanceof ItemComboBox) {
 						ItemComboBox val = (ItemComboBox)c;
 						String text = (String)val.getSelectedItem();
+						parent.setTextContent(text);
+						parent =(Element)parent.getParentNode();
+					}
+					else if (c instanceof RadioPanel) {
+						RadioPanel val = (RadioPanel)c;
+						String text = val.getText();
 						parent.setTextContent(text);
 						parent =(Element)parent.getParentNode();
 					}
@@ -531,5 +651,38 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			return number;
 		}
 	}	
+	
+	class RadioPanel extends JPanel {
+		String[] options;
+		ButtonGroup group;
+		public RadioPanel(String[] options) {
+			super();
+			setLayout(new RowLayout());
+			setBackground(background);
+			this.options = options;
+			group = new ButtonGroup();
+			JRadioButton b = null;
+			for (String s : options) {
+				b = new JRadioButton(s);
+				b.setBackground(background);
+				this.add(b);
+				group.add(b);
+			}
+			this.add(RowLayout.crlf());
+			if (b != null) b.setSelected(true);
+		}
+		public String getText() {
+			Enumeration<AbstractButton> e = group.getElements();
+			while (e.hasMoreElements()) {
+				AbstractButton b = e.nextElement();
+				if (b.isSelected()) {
+					String value = b.getText().toLowerCase();
+					if (value.equals("???")) value = "";
+					return value;
+				}
+			}
+			return "";
+		}
+	}
 	
 }
