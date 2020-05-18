@@ -158,6 +158,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					dob = getFirstDicomObject(study);
 					if (dob != null) {
 						patientAge = dob.getElementValue("PatientAge");
+						patientAge = fixPatientAge(patientAge);
 					}
 					
 					String phi = getStudyPHI(phiPatientID, study);
@@ -212,6 +213,14 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		}
 		catch (Exception ex) { }
 		return "";
+	}
+	
+	private String fixPatientAge(String ageString) {
+		ageString = ageString.replaceAll("[^0-9]","");
+		int age = 0;
+		try { age = Integer.parseInt(ageString); }
+		catch (Exception oops) { }
+		return Integer.toString(age);
 	}
 	
 	private DicomObject getFirstDicomObject(File dir) {
