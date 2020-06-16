@@ -410,7 +410,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					list.add(new ItemComboBox(noduleType, 0));
 					list.add(RowLayout.crlf());
 					
-					list.add(new ItemLabel("NoduleTypeOtherExplantion", 5));
+					list.add(new ItemLabel("NoduleTypeOtherExplanation", 5));
 					list.add(new ItemField(""));
 					list.add(RowLayout.crlf());
 					
