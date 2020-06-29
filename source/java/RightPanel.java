@@ -141,6 +141,8 @@ public class RightPanel extends JPanel
 		String filterScript = fp.getText().trim();
 		boolean filterSRs = fp.getFilterSRs();
 		boolean filterSCs = fp.getFilterSCs();
+		boolean acceptRFs = fp.getAcceptRFs();
+		
 		boolean filterResult = true;
 		if (file.isFile()) {
 			try {
@@ -148,7 +150,7 @@ public class RightPanel extends JPanel
 				DicomObject dob;
 				if ( ((dob=getDicomObject(file)) != null)
 						&& ( dob.isImage() )
-						&& ( !filterSCs || !dob.isSecondaryCapture() )
+						&& ( !filterSCs || !dob.isSecondaryCapture() || (acceptRFs && dob.isReformatted()) )
 						&& ( !filterSRs || !dob.isSR() )
 						&& ( filterResult=((filterScript.length() == 0) || dob.matches(filterScript)) ) ) {
 					File outputDir;

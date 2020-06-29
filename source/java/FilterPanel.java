@@ -22,6 +22,7 @@ public class FilterPanel extends BasePanel implements ActionListener {
 	File file = new File("filter.script");
 	JCheckBox filterSRs; //structured reports
 	JCheckBox filterSCs; //secondary capture
+	JCheckBox acceptRFs; //reformatted images
 	Configuration config;
 
 	static FilterPanel filterPanel = null;
@@ -58,6 +59,12 @@ public class FilterPanel extends BasePanel implements ActionListener {
 		filterSCs.setSelected(!sel.equals("no"));
 		filterSCs.setBackground(config.background);
 		filterSCs.addActionListener(this);
+		acceptRFs = new JCheckBox("Accept Reformatted Images");
+		sel = config.getProps().getProperty("acceptRFs", "yes");
+		acceptRFs.setSelected(!sel.equals("no"));
+		acceptRFs.setBackground(config.background);
+		acceptRFs.addActionListener(this);
+		
 		reset = new JButton("Reset");
 		reset.addActionListener(this);
 		save = new JButton("Save");
@@ -67,6 +74,8 @@ public class FilterPanel extends BasePanel implements ActionListener {
 		footer.add(filterSRs);
 		footer.add(Box.createHorizontalStrut(20));
 		footer.add(filterSCs);
+		footer.add(Box.createHorizontalStrut(20));
+		footer.add(acceptRFs);
 		footer.add(Box.createHorizontalGlue());
 		footer.add(reset);
 		footer.add(Box.createHorizontalStrut(3));
@@ -100,6 +109,10 @@ public class FilterPanel extends BasePanel implements ActionListener {
 		return filterSCs.isSelected();
 	}
 
+	public boolean getAcceptRFs() {
+		return acceptRFs.isSelected();
+	}
+
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
 		if (source.equals(reset)) reload();
@@ -111,6 +124,9 @@ public class FilterPanel extends BasePanel implements ActionListener {
 		}
 		else if (source.equals(filterSCs)) {
 			config.getProps().setProperty("filterSCs", (filterSCs.isSelected() ? "yes" : "no"));
+		}
+		else if (source.equals(acceptRFs)) {
+			config.getProps().setProperty("acceptRFs", (acceptRFs.isSelected() ? "yes" : "no"));
 		}
 	}
 
