@@ -17,6 +17,7 @@ import org.rsna.util.XmlUtil;
 import org.rsna.ui.RowLayout;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /**
  * A JPanel that provides a user interface for preparing a submission
@@ -108,9 +109,40 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			}
 		}
 		else if (source.equals(footerPanel.save) && (currentSelection != null)) {
-			centerPanel.saveMetadataXML(currentSelection);
-			centerPanel.saveMetadataCSV(currentSelection);
+			if (checkFields()) {
+				centerPanel.saveMetadataXML(currentSelection);
+				centerPanel.saveMetadataCSV(currentSelection);
+			}
+			else {
+				JOptionPane.showMessageDialog(this,
+						"The DaysFromFirstStudyToDiagnosis field\n"+
+						"must contain a value. Enter 0 if no lung\n"+
+						"cancer was diagnosed. Enter a negative number\n"+
+						"if lung cancer was diagnosed prior to the\n"+
+						"first CT study.",
+						"Entry Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
 		}
+	}
+	
+	private boolean checkFields() {
+		Document doc = centerPanel.saveMetadataXML(null);
+		if (doc != null) {
+			Element root = doc.getDocumentElement();
+			NodeList pts = root.getElementsByTagName("Patient");
+			if (pts.getLength() == 0) return true;
+			for (int i=0; i<pts.getLength(); i++) {
+				Element daysEl = XmlUtil.getFirstNamedChild(pts.item(i), "DaysFromFirstStudyToDiagnosis");
+				if (daysEl != null) {
+					String days = daysEl.getTextContent().trim();
+					if (days.equals("")) return false;
+					try { int d = Integer.parseInt(days); }
+					catch (Exception notInt) { return false; }
+				}
+			}
+		}
+		return true;
 	}
 	
 	private File getSelection() {
@@ -498,10 +530,10 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			catch (Exception ex) { ex.printStackTrace(); }
 		}
 
-		public void saveMetadataXML(File dir) {
+		public Document saveMetadataXML(File dir) {
 			try {
 				Document doc = XmlUtil.getDocument();
-				Element root = doc.createElement(dir.getName());
+				Element root = doc.createElement( (dir!=null) ? dir.getName() : "test" );
 				doc.appendChild(root);
 				
 				Element parent = root;
@@ -567,10 +599,16 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						parent =(Element)parent.getParentNode();
 					}
 				}
-				File metadata = new File(dir, "metadata.xml");
-				FileUtil.setText(metadata, XmlUtil.toPrettyString(doc));
+				if (dir != null) {
+					File metadata = new File(dir, "metadata.xml");
+					FileUtil.setText(metadata, XmlUtil.toPrettyString(doc));
+				}
+				return doc;
 			}
-			catch (Exception ex) { ex.printStackTrace(); }
+			catch (Exception ex) { 
+				ex.printStackTrace();
+				return null;
+			}
 		}
 	}
 
