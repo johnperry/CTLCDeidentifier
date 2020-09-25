@@ -53,11 +53,13 @@ public class Configuration {
 		try { 
 			integerTable = new IntegerTable(databaseDir);
 			outputDir = home;
-			String odString = props.getProperty("outputDir", "Submissions");
+			String odString = props.getProperty("outputDir");
 			if (odString != null) outputDir = new File(odString);
+			else outputDir = new File(home, "Submissions");
 			props.setProperty("outputDir", outputDir.getAbsolutePath());
 			String ext = props.getProperty("extensions", "*"); //was ".dcm,[dcm]"
 			props.setProperty("extensions", ext);
+			props.store();
 		}
 		catch (Exception ex) { }
 	}
