@@ -49,7 +49,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		"4X (suspicious)"
 	};
 	String[] smokingStatus = {"Never", "Past", "Current"};
-	String[] cancerHistory = {"None", "Adenocarcenoma", "Adenosquamous", "Large cell", "Squamous cell", "Small cell"};
+	String[] cancerHistory = {"None", "Adenocarcinoma", "Adenosquamous", "Large cell", "Squamous cell", "Small cell"};
 	String[] cancerStatus = {"None", "Suspicious Nodule(s)", "Lung Cancer"};
 	String[] noduleType = {"Solid", "Part-solid", "Nonsolid", "Other"};
 	String[] noduleStatus = {"Benign", "Malignant", "Unknown"};
@@ -119,7 +119,13 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						"must contain a value. Enter 0 if no lung\n"+
 						"cancer was diagnosed. Enter a negative number\n"+
 						"if lung cancer was diagnosed prior to the\n"+
-						"first CT study.",
+						"first CT study.\n\n"+
+						"If a NoduleType field contains 'Other', the\n"+
+						"corresponding NoduleTypeOtherExplanation\n"+
+						"field must not be blank.\n\n"+
+						"If a PathologyType field contains 'Other',\n"+
+						"the corresponding OtherExplanation field\n"+
+						"must not be blank.\n\n",
 						"Entry Error",
 						JOptionPane.ERROR_MESSAGE);
 			}
@@ -133,12 +139,29 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			NodeList pts = root.getElementsByTagName("Patient");
 			if (pts.getLength() == 0) return true;
 			for (int i=0; i<pts.getLength(); i++) {
-				Element daysEl = XmlUtil.getFirstNamedChild(pts.item(i), "DaysFromFirstStudyToDiagnosis");
+				Element pt = (Element)pts.item(i);
+				//First check DaysFromFirstStudyToDiagnosis
+				Element daysEl = XmlUtil.getFirstNamedChild(pt, "DaysFromFirstStudyToDiagnosis");
 				if (daysEl != null) {
 					String days = daysEl.getTextContent().trim();
 					if (days.equals("")) return false;
 					try { int d = Integer.parseInt(days); }
 					catch (Exception notInt) { return false; }
+				}
+				//Next loop on all the nodules
+				NodeList nodules = pt.getElementsByTagName("Nodule");
+				for (int j=0; j<nodules.getLength(); j++) {
+					Element nodule = (Element)nodules.item(j);
+					Element noduleType = XmlUtil.getFirstNamedChild(nodule, "NoduleType");
+					if ((noduleType != null) && noduleType.getTextContent().trim().equals("Other")) {
+						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "NoduleTypeOtherExplanation");
+						if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) return false;
+					}
+					Element pathologyType = XmlUtil.getFirstNamedChild(nodule, "PathologyType");
+					if ((pathologyType != null) && pathologyType.getTextContent().trim().equals("Other")) {
+						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "NoduleTypeOtherExplanation");
+						if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) return false;
+					}
 				}
 			}
 		}
