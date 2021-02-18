@@ -159,7 +159,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					}
 					Element pathologyType = XmlUtil.getFirstNamedChild(nodule, "PathologyType");
 					if ((pathologyType != null) && pathologyType.getTextContent().trim().equals("Other")) {
-						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "NoduleTypeOtherExplanation");
+						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "OtherExplanation");
 						if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) return false;
 					}
 				}
