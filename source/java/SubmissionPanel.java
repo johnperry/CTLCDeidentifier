@@ -109,63 +109,129 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			}
 		}
 		else if (source.equals(footerPanel.save) && (currentSelection != null)) {
-			if (checkFields()) {
+			highlightFields();
+			int checkResult = checkFields();
+			if (checkResult == 0) {
 				centerPanel.saveMetadataXML(currentSelection);
 				centerPanel.saveMetadataCSV(currentSelection);
 			}
 			else {
-				JOptionPane.showMessageDialog(this,
+				StringBuffer sb = new StringBuffer();
+				if ((checkResult & 1) != 0) {
+					sb.append(
 						"The DaysFromFirstStudyToDiagnosis field\n"+
 						"must contain a value. Enter 0 if no lung\n"+
 						"cancer was diagnosed. Enter a negative number\n"+
 						"if lung cancer was diagnosed prior to the\n"+
-						"first CT study.\n\n"+
+						"first CT study.\n\n"
+					);
+				}
+				if ((checkResult & 2) != 0) {
+					sb.append(
 						"If a NoduleType field contains 'Other', the\n"+
 						"corresponding NoduleTypeOtherExplanation\n"+
-						"field must not be blank.\n\n"+
+						"field must not be blank.\n\n"
+					);
+				}
+				if ((checkResult & 4) != 0) {
+					sb.append(
 						"If a PathologyType field contains 'Other',\n"+
 						"the corresponding OtherExplanation field\n"+
-						"must not be blank.\n\n",
-						"Entry Error",
-						JOptionPane.ERROR_MESSAGE);
+						"must not be blank.\n\n"
+					);
+				}
+				JOptionPane.showMessageDialog(this,
+					sb.toString(),
+					"Entry Error",
+					JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
-	
-	private boolean checkFields() {
+	private int checkFields() {
+		int result = 0;
 		Document doc = centerPanel.saveMetadataXML(null);
 		if (doc != null) {
 			Element root = doc.getDocumentElement();
 			NodeList pts = root.getElementsByTagName("Patient");
-			if (pts.getLength() == 0) return true;
-			for (int i=0; i<pts.getLength(); i++) {
-				Element pt = (Element)pts.item(i);
-				//First check DaysFromFirstStudyToDiagnosis
-				Element daysEl = XmlUtil.getFirstNamedChild(pt, "DaysFromFirstStudyToDiagnosis");
-				if (daysEl != null) {
-					String days = daysEl.getTextContent().trim();
-					if (days.equals("")) return false;
-					try { int d = Integer.parseInt(days); }
-					catch (Exception notInt) { return false; }
-				}
-				//Next loop on all the nodules
-				NodeList nodules = pt.getElementsByTagName("Nodule");
-				for (int j=0; j<nodules.getLength(); j++) {
-					Element nodule = (Element)nodules.item(j);
-					Element noduleType = XmlUtil.getFirstNamedChild(nodule, "NoduleType");
-					if ((noduleType != null) && noduleType.getTextContent().trim().equals("Other")) {
-						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "NoduleTypeOtherExplanation");
-						if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) return false;
+			if (pts.getLength() > 0) {
+				for (int i=0; i<pts.getLength(); i++) {
+					Element pt = (Element)pts.item(i);
+					//First check DaysFromFirstStudyToDiagnosis
+					Element daysEl = XmlUtil.getFirstNamedChild(pt, "DaysFromFirstStudyToDiagnosis");
+					if (daysEl != null) {
+						String days = daysEl.getTextContent().trim();
+						if (days.equals("")) result |= 1;
+						else {
+							try { int d = Integer.parseInt(days); }
+							catch (Exception notInt) { result |= 1; }
+						}
 					}
-					Element pathologyType = XmlUtil.getFirstNamedChild(nodule, "PathologyType");
-					if ((pathologyType != null) && pathologyType.getTextContent().trim().equals("Other")) {
-						Element otherExp = XmlUtil.getFirstNamedChild(nodule, "OtherExplanation");
-						if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) return false;
+					//Next loop on all the nodules
+					NodeList nodules = pt.getElementsByTagName("Nodule");
+					for (int j=0; j<nodules.getLength(); j++) {
+						Element nodule = (Element)nodules.item(j);
+						Element noduleType = XmlUtil.getFirstNamedChild(nodule, "NoduleType");
+						if ((noduleType != null) && noduleType.getTextContent().trim().equals("Other")) {
+							Element otherExp = XmlUtil.getFirstNamedChild(nodule, "NoduleTypeOtherExplanation");
+							if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) result |= 2;
+						}
+						Element pathologyType = XmlUtil.getFirstNamedChild(nodule, "PathologyType");
+						if ((pathologyType != null) && pathologyType.getTextContent().trim().equals("Other")) {
+							Element otherExp = XmlUtil.getFirstNamedChild(nodule, "OtherExplanation");
+							if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) result |= 4;
+						}
 					}
 				}
 			}
 		}
-		return true;
+		return result;
+	}
+	
+	private void highlightFields() {
+		ItemField field;
+		Component[] comps = centerPanel.getComponents();
+		for (int i=0; i<comps.length; i++) {
+			if (comps[i] instanceof ItemLabel) {
+				ItemLabel label = (ItemLabel)comps[i];
+				String labelText = label.getText();
+				if (labelText.equals("DaysFromFirstStudyToDiagnosis")) {
+					field = (ItemField)comps[i+1];
+					String days = field.getText().trim();
+					boolean ok = true;
+					if (days.equals("")) ok = false;
+					else {
+						try { int d = Integer.parseInt(days); }
+						catch (Exception notInt) { ok = false; }
+					}
+					if (!ok) label.setForeground(Color.RED);
+					else label.setForeground(Color.BLACK);
+				}
+				else if (labelText.equals("NoduleType")) {
+					ItemComboBox combo = (ItemComboBox)comps[i+1];
+					String text = ((String)combo.getSelectedItem()).trim();
+					if (text.equals("Other")) {
+						field = (ItemField)comps[i+4];
+						ItemLabel otherExpLabel = (ItemLabel)comps[i+3];
+						if (field.getText().trim().equals("")) {
+							otherExpLabel.setForeground(Color.RED);
+						}
+						else otherExpLabel.setForeground(Color.BLACK);
+					}
+				}
+				else if (labelText.equals("PathologyType")) {
+					ItemComboBox combo = (ItemComboBox)comps[i+1];
+					String text = ((String)combo.getSelectedItem()).trim();
+					if (text.equals("Other")) {
+						field = (ItemField)comps[i+4];
+						ItemLabel otherExpLabel = (ItemLabel)comps[i+3];
+						if (field.getText().trim().equals("")) {
+							otherExpLabel.setForeground(Color.RED);
+						}
+						else otherExpLabel.setForeground(Color.BLACK);
+					}
+				}
+			}
+		}
 	}
 	
 	private File getSelection() {
