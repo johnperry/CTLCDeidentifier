@@ -28,7 +28,7 @@ import org.rsna.util.StringUtil;
  */
 public class Deidentifier extends JFrame implements ChangeListener {
 
-    private String					windowTitle = "DeIdentifier - version 2";
+    private String					windowTitle = "DeIdentifier - version 3";
     private MainPanel				mainPanel;
     private JPanel					splitPanel;
     private SourcePanel				sourcePanel;

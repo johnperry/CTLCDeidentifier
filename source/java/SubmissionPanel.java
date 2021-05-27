@@ -126,6 +126,29 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						"first CT study.\n\n"
 					);
 				}
+				if ((checkResult & 8) != 0) {
+					sb.append(
+						"The PackYears field must contain an integer.\n"+
+						"For non-smokers, enter 0.\n\n"
+					);
+				}
+				if ((checkResult & 16) != 0) {
+					sb.append(
+						"The XPosition and YPosition fields must contain\n"+
+						"only integers.\n\n"
+					);
+				}
+				if ((checkResult & 64) != 0) {
+					sb.append(
+						"The ZPosition field must contain a decimal number.\n\n"
+					);
+				}
+				if ((checkResult & 32) != 0) {
+					sb.append(
+						"The LongestDiameter field must contain a\n"+
+						"decimal value (in mm).\n\n"
+					);
+				}
 				if ((checkResult & 2) != 0) {
 					sb.append(
 						"If a NoduleType field contains 'Other', the\n"+
@@ -157,14 +180,12 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 				for (int i=0; i<pts.getLength(); i++) {
 					Element pt = (Element)pts.item(i);
 					//First check DaysFromFirstStudyToDiagnosis
-					Element daysEl = XmlUtil.getFirstNamedChild(pt, "DaysFromFirstStudyToDiagnosis");
-					if (daysEl != null) {
-						String days = daysEl.getTextContent().trim();
-						if (days.equals("")) result |= 1;
-						else {
-							try { int d = Integer.parseInt(days); }
-							catch (Exception notInt) { result |= 1; }
-						}
+					if (!checkNumericField(pt, "DaysFromFirstStudyToDiagnosis", false, false)) result |= 1;
+					//Now check all the PackYears
+					NodeList studies = pt.getElementsByTagName("Study");
+					for (int j=0; j<studies.getLength(); j++) {
+						Element study = (Element)studies.item(j);
+						if (!checkNumericField(study, "PackYears", false, false)) result |= 8;
 					}
 					//Next loop on all the nodules
 					NodeList nodules = pt.getElementsByTagName("Nodule");
@@ -180,11 +201,35 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 							Element otherExp = XmlUtil.getFirstNamedChild(nodule, "OtherExplanation");
 							if ((otherExp == null) || otherExp.getTextContent().trim().equals("")) result |= 4;
 						}
+						if (!checkNumericField(nodule, "XPosition", false, false)) result |= 16;
+						if (!checkNumericField(nodule, "YPosition", false, false)) result |= 16;
+						if (!checkNumericField(nodule, "ZPosition", false, true)) result |= 64;
+						if (!checkNumericField(nodule, "LongestDiameter", false, true)) result |= 32;
 					}
 				}
 			}
 		}
 		return result;
+	}
+	
+	private boolean checkNumericField(Element parent, String name, boolean acceptBlank, boolean acceptFloatingPoint) {
+		Element el = XmlUtil.getFirstNamedChild(parent, name);
+		if (el != null) {
+			String elText = el.getTextContent().trim();
+			if (elText.equals("")) return acceptBlank;
+			else {
+				try { 
+					if (acceptFloatingPoint) {
+						float elFloat = Float.parseFloat(elText);
+					}
+					else {
+						int elInt = Integer.parseInt(elText);
+					}
+				}
+				catch (Exception notOK) { return false; }
+			}
+		}
+		return true;
 	}
 	
 	private void highlightFields() {
@@ -194,13 +239,41 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			if (comps[i] instanceof ItemLabel) {
 				ItemLabel label = (ItemLabel)comps[i];
 				String labelText = label.getText();
-				if (labelText.equals("DaysFromFirstStudyToDiagnosis")) {
+				if (labelText.equals("DaysFromFirstStudyToDiagnosis")
+						 || labelText.equals("XPosition")
+						 || labelText.equals("YPosition")
+						 || labelText.equals("PackYears")) {
 					field = (ItemField)comps[i+1];
-					String days = field.getText().trim();
+					String fieldText = field.getText().trim();
 					boolean ok = true;
-					if (days.equals("")) ok = false;
+					if (fieldText.equals("")) ok = false;
 					else {
-						try { int d = Integer.parseInt(days); }
+						try { int fieldInt = Integer.parseInt(fieldText); }
+						catch (Exception notInt) { ok = false; }
+					}
+					if (!ok) label.setForeground(Color.RED);
+					else label.setForeground(Color.BLACK);
+				}
+				else if (labelText.equals("ZPosition")
+						 || labelText.equals("LongestDiameter")) {
+					field = (ItemField)comps[i+1];
+					String fieldText = field.getText().trim();
+					boolean ok = true;
+					if (fieldText.equals("")) ok = false;
+					else {
+						try { float fieldFloatt = Float.parseFloat(fieldText); }
+						catch (Exception notInt) { ok = false; }
+					}
+					if (!ok) label.setForeground(Color.RED);
+					else label.setForeground(Color.BLACK);
+				}
+				else if (labelText.equals("PackYears")) {
+					field = (ItemField)comps[i+1];
+					String years = field.getText().trim();
+					boolean ok = true;
+					if (years.equals("")) ok = false;
+					else {
+						try { int d = Integer.parseInt(years); }
 						catch (Exception notInt) { ok = false; }
 					}
 					if (!ok) label.setForeground(Color.RED);
