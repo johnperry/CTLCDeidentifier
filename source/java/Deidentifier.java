@@ -20,6 +20,11 @@ import org.rsna.util.FileUtil;
 import org.rsna.util.JarUtil;
 import org.rsna.util.StringUtil;
 
+import org.rsna.ctp.stdstages.anonymizer.dicom.DAScript;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
 /**
  * The DicomEditor program provides a DICOM viewer and
  * element editor plus an anonymizer that can process a
@@ -28,7 +33,7 @@ import org.rsna.util.StringUtil;
  */
 public class Deidentifier extends JFrame implements ChangeListener {
 
-    private String					windowTitle = "DeIdentifier - version 3";
+    private String					windowTitle = "DeIdentifier - version 4";
     private MainPanel				mainPanel;
     private JPanel					splitPanel;
     private SourcePanel				sourcePanel;
@@ -60,6 +65,63 @@ public class Deidentifier extends JFrame implements ChangeListener {
 		super();
 		Configuration config = Configuration.getInstance();
 		
+		//Initialize the SITEID
+		String propsSITEID = config.getProps().getProperty("SITEID");
+		if (propsSITEID == null) {
+			long t = System.currentTimeMillis()/60L;
+			propsSITEID = Long.toString(t);
+			propsSITEID = propsSITEID.substring(propsSITEID.length() - 6);
+			config.getProps().setProperty("SITEID", propsSITEID);
+			config.store();
+		}
+		File daScriptFile = new File(config.dicomScriptFile);
+		DAScript daScript = DAScript.getInstance(daScriptFile);
+		Document daDoc = daScript.toXML();
+		Element daRoot = daDoc.getDocumentElement();
+		Node child = daRoot.getFirstChild();
+		String scriptSITEID = null;
+		Element e = null;
+		while (child != null) {
+			if (child.getNodeName().equals("p")) {
+				e = (Element)child;
+				if (e.getAttribute("t").equals("SITEID")) {
+					scriptSITEID = e.getTextContent().trim();
+					break;
+				}
+			}
+			child = child.getNextSibling();
+		}
+		if (scriptSITEID == null) {
+			//Add the SITEID param if it is missing
+			Element x = daDoc.createElement("p");
+			x.setAttribute("t", "SITEID");
+			x.setTextContent(propsSITEID);
+			daRoot.insertBefore(x, daRoot.getFirstChild());
+			FileUtil.setText(daScriptFile, daScript.toXMLString());
+		}
+		else if (!scriptSITEID.equals(propsSITEID)) {
+			//Make sure the script reflects the props SITEID
+			e.setTextContent(propsSITEID);
+			FileUtil.setText(daScriptFile, daScript.toXMLString());
+		}
+		//Force the PatientID script
+		child = daRoot.getFirstChild();
+		while (child != null) {
+			if (child.getNodeName().equals("e")) {
+				Element x = (Element)child;
+				if (x.getAttribute("t").equals("00100020")) {
+					String oldScript = x.getTextContent().trim();
+					String newScript = "@param(@SITEID)-@integer(PatientID,\"ptid\",6)";
+					if (!oldScript.equals(newScript)) {
+						x.setTextContent(newScript);
+						FileUtil.setText(daScriptFile, daScript.toXMLString());
+						break;
+					}
+				}
+			}
+			child = child.getNextSibling();
+		}
+
 		//Put the build date/time in the window title
 		try {
 			File program = new File("Deidentifier.jar");

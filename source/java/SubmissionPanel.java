@@ -117,6 +117,11 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			}
 			else {
 				StringBuffer sb = new StringBuffer();
+				if ((checkResult & 256) != 0) {
+					sb.append(
+						"There must be at least two studies per patient.\n\n"
+					);
+				}
 				if ((checkResult & 1) != 0) {
 					sb.append(
 						"The DaysFromFirstStudyToDiagnosis field\n"+
@@ -130,6 +135,11 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					sb.append(
 						"The PackYears field must contain an integer.\n"+
 						"For non-smokers, enter 0.\n\n"
+					);
+				}
+				if ((checkResult & 128) != 0) {
+					sb.append(
+						"The PackYears fields must be in increasing order.\n\n"
 					);
 				}
 				if ((checkResult & 16) != 0) {
@@ -183,10 +193,22 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					if (!checkNumericField(pt, "DaysFromFirstStudyToDiagnosis", false, false)) result |= 1;
 					//Now check all the PackYears
 					NodeList studies = pt.getElementsByTagName("Study");
+					if (studies.getLength() < 2) result |= 256;
 					for (int j=0; j<studies.getLength(); j++) {
 						Element study = (Element)studies.item(j);
 						if (!checkNumericField(study, "PackYears", false, false)) result |= 8;
 					}
+					//If the PackYears are all there, make sure they are in order.
+					if ((result & 0x8) == 0) {
+						for (int j=1; j<studies.getLength(); j++) {
+							Element prev = (Element)studies.item(j-1);
+							Element study = (Element)studies.item(j);
+							int prevyrs = getIntegerField(prev, "PackYears");
+							int studyyrs = getIntegerField(study, "PackYears");
+							if (studyyrs < prevyrs) result |= 128;
+						}
+					}
+					
 					//Next loop on all the nodules
 					NodeList nodules = pt.getElementsByTagName("Nodule");
 					for (int j=0; j<nodules.getLength(); j++) {
@@ -210,6 +232,32 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			}
 		}
 		return result;
+	}
+	
+	private int getIntegerField(Element parent, String name) {
+		Element el = XmlUtil.getFirstNamedChild(parent, name);
+		if (el != null) {
+			String elText = el.getTextContent().trim();
+			if (elText.equals("")) return 0;
+			else {
+				try { return Integer.parseInt(elText); }
+				catch (Exception notOK) { return 0; }
+			}
+		}
+		return 0;
+	}
+		
+	private float getFloatField(Element parent, String name) {
+		Element el = XmlUtil.getFirstNamedChild(parent, name);
+		if (el != null) {
+			String elText = el.getTextContent().trim();
+			if (elText.equals("")) return 0;
+			else {
+				try { return Float.parseFloat(elText); }
+				catch (Exception notOK) { return 0; }
+			}
+		}
+		return 0;
 	}
 	
 	private boolean checkNumericField(Element parent, String name, boolean acceptBlank, boolean acceptFloatingPoint) {
@@ -330,9 +378,11 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 				int studyNumber = 1;
 				int seriesNumber = 1;
 				String patientSex = "";
+				String patientID = "";
 				dob = getFirstDicomObject(patient);
 				if (dob != null) {
 					patientSex = dob.getElementValue("PatientSex");
+					patientID = dob.getPatientID();
 				}
 				
 				String pn = patient.getName();
@@ -342,6 +392,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 				centerPanel.addSectionRow("Patient", ies, 1);
 				
 				centerPanel.addItemRow("PatientName", patient.getName(), 2);
+				centerPanel.addItemRow("PatientID", patientID, 2);
 				centerPanel.addItemRow("PatientSex", patientSex, 2);
 				centerPanel.addItemComboBoxRow("LungCancerHistory", cancerHistory, 2);
 				centerPanel.addItemFieldRow("DaysFromFirstStudyToDiagnosis", "", 2);
@@ -666,9 +717,14 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 						}
 					}
 					else if (c instanceof ItemValue) {
-						ItemValue val = (ItemValue)c;
-						String text = val.getText();
-						sb.append(text + ",");
+						//Don't include PatientID in the CSV
+						Component cprev = comps[i-1];
+						if (!(cprev instanceof ItemLabel)
+								|| !((ItemLabel)cprev).getText().equals("PatientID")) {
+							ItemValue val = (ItemValue)c;
+							String text = val.getText();
+							sb.append(text + ",");
+						}
 					}
 					else if (c instanceof ItemField) {
 						ItemField val = (ItemField)c;

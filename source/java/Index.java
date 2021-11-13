@@ -167,6 +167,7 @@ public class Index {
 	public Study[] listStudiesFor(String origPatientID) {
 		try {
 			StudyIndexEntry ie = (StudyIndexEntry)fwdStudyIndex.get(origPatientID);
+			if (ie == null) return new Study[0];
 			Study[] studies = ie.studies.toArray(new Study[ie.studies.size()]);
 			Arrays.sort(studies);
 			return studies;

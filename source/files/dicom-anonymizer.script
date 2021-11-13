@@ -122,7 +122,7 @@
  <e en="F" t="00089215" n="DerivationCodeSeq"></e>
  <e en="F" t="00089237" n="RefGrayscalePresentationStateSeq"></e>
  <e en="T" t="00100010" n="PatientName">@param(@SPOKENAME)-@integer(PatientID,"ptid",6)</e>
- <e en="T" t="00100020" n="PatientID">@hash(this,10)</e>
+ <e en="T" t="00100020" n="PatientID">@param(@SITEID)-@integer(PatientID,\"ptid\",6)</e>
  <e en="T" t="00100021" n="IssuerOfPatientID">@remove()</e>
  <e en="T" t="00100030" n="PatientBirthDate">@hashdate(this,PatientID)</e>
  <e en="T" t="00100032" n="PatientBirthTime">@remove()</e>
