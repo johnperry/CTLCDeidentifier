@@ -26,7 +26,7 @@ public class Configuration {
     public static final String lookupTableFile	= "lookup-table.properties";
     public static final String helpfile 		= "help.html";
     
-    public static IntegerTable integerTable		= null;
+    public static DeidentifierIntegerTable integerTable = null;
     public static File outputDir				= null;
     public static File databaseDir				= null;
 
@@ -51,7 +51,7 @@ public class Configuration {
 		databaseDir = new File(home, "data");
 		databaseDir.mkdirs();
 		try { 
-			integerTable = new IntegerTable(databaseDir);
+			integerTable = new DeidentifierIntegerTable(databaseDir);
 			outputDir = home;
 			String odString = props.getProperty("outputDir");
 			if (odString != null) outputDir = new File(odString);
@@ -59,12 +59,35 @@ public class Configuration {
 			props.setProperty("outputDir", outputDir.getAbsolutePath());
 			String ext = props.getProperty("extensions", "*"); //was ".dcm,[dcm]"
 			props.setProperty("extensions", ext);
+			installIntegerRange();
 			props.store();
 		}
 		catch (Exception ex) { }
 	}
 	
-	public IntegerTable getIntegerTable() {
+	//If there is a range property, install the range in the
+	//IntegerTable and then delete the property.
+	private void installIntegerRange() {
+		String range = props.getProperty("range");
+		if (range != null) {
+			try {
+				String[] limits = range.trim().split("[,-]");
+				if (limits.length == 2) {
+					int low = Integer.parseInt(limits[0].trim());
+					int high = Integer.parseInt(limits[1].trim());
+					if (integerTable.setSkipRange("\"ptid\"", low, high)) {
+						props.remove("range");
+						logger.warn("Integer skip range set: "+low+"-"+high);
+					}
+				}
+			}
+			catch (Exception ex) {
+				logger.warn("Unable to process range property: \""+range+"\"");
+			}
+		}
+	}
+	
+	public DeidentifierIntegerTable getIntegerTable() {
 		return integerTable;
 	}
 	

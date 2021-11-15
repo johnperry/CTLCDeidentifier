@@ -33,7 +33,7 @@ import org.w3c.dom.Node;
  */
 public class Deidentifier extends JFrame implements ChangeListener {
 
-    private String					windowTitle = "DeIdentifier - version 4";
+    private String					windowTitle = "DeIdentifier - version 5";
     private MainPanel				mainPanel;
     private JPanel					splitPanel;
     private SourcePanel				sourcePanel;
@@ -65,6 +65,9 @@ public class Deidentifier extends JFrame implements ChangeListener {
 		super();
 		Configuration config = Configuration.getInstance();
 		
+		//************************************************************
+		//                   Initialization
+		//************************************************************
 		//Initialize the SITEID
 		String propsSITEID = config.getProps().getProperty("SITEID");
 		if (propsSITEID == null) {
@@ -121,6 +124,9 @@ public class Deidentifier extends JFrame implements ChangeListener {
 			}
 			child = child.getNextSibling();
 		}
+		//************************************************************
+		//                   End of initialization
+		//************************************************************
 
 		//Put the build date/time in the window title
 		try {
