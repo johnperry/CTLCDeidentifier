@@ -12,6 +12,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import org.rsna.ctp.objects.DicomObject;
+import org.rsna.util.JarUtil;
 import org.rsna.util.FileUtil;
 import org.rsna.util.XmlUtil;
 import org.rsna.ui.RowLayout;
@@ -32,6 +33,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 	File currentSelection = null;
 	JFileChooser chooser;
 	DirectoryFilter dirsOnly = new DirectoryFilter();
+	FilenameComparator filenameComparator = new FilenameComparator();
 	
 	Font sectionFont = new Font( "SansSerif", Font.BOLD, 16 );
 	Font itemFont = new Font( "SansSerif", Font.PLAIN, 16 );
@@ -114,6 +116,10 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			if (checkResult == 0) {
 				centerPanel.saveMetadataXML(currentSelection);
 				centerPanel.saveMetadataCSV(currentSelection);
+				JOptionPane.showMessageDialog(this,
+						"Metadata saved.",
+						"Success", JOptionPane.INFORMATION_MESSAGE);
+				
 			}
 			else {
 				StringBuffer sb = new StringBuffer();
@@ -309,7 +315,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					boolean ok = true;
 					if (fieldText.equals("")) ok = false;
 					else {
-						try { float fieldFloatt = Float.parseFloat(fieldText); }
+						try { float fieldFloat = Float.parseFloat(fieldText); }
 						catch (Exception notInt) { ok = false; }
 					}
 					if (!ok) label.setForeground(Color.RED);
@@ -396,7 +402,9 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 				centerPanel.addItemRow("PatientSex", patientSex, 2);
 				centerPanel.addItemComboBoxRow("LungCancerHistory", cancerHistory, 2);
 				centerPanel.addItemFieldRow("DaysFromFirstStudyToDiagnosis", "", 2);
+
 				File[] studies = patient.listFiles(dirsOnly);
+				Arrays.sort(studies, filenameComparator);
 				centerPanel.addItemRow("NStudies", Integer.toString(studies.length), 2);
 				for (File study : studies) {
 					String patientAge = "";
@@ -503,7 +511,13 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		public boolean accept(File f) {
 			return f.isDirectory();
 		}
-	}		
+	}
+	
+	class FilenameComparator implements Comparator<File> {
+		public int compare(File f1, File f2) {
+			return f1.getName().compareTo(f2.getName());
+		}
+	}
 		
 	class HeaderPanel extends Panel {
 		public JLabel panelTitle;
@@ -754,6 +768,12 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 				Element root = doc.createElement( (dir!=null) ? dir.getName() : "test" );
 				doc.appendChild(root);
 				
+				File jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+				Hashtable<String,String> manifest = JarUtil.getManifestAttributes(jar);
+				String build = manifest.get("Date");
+				root.setAttribute("program", jar.getName());
+				root.setAttribute("build", build);
+
 				Element parent = root;
 				Element lastPatient = null;
 				Element lastStudy = null;
