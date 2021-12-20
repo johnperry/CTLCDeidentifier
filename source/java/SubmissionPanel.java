@@ -743,7 +743,8 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 					else if (c instanceof ItemField) {
 						ItemField val = (ItemField)c;
 						String text = val.getText();
-						sb.append("\"" + text + "\",");
+						if (!text.contains(",")) sb.append(text + ",");
+						else sb.append("\"" + text + "\",");
 					}
 					else if (c instanceof ItemComboBox) {
 						ItemComboBox val = (ItemComboBox)c;
