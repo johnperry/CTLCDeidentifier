@@ -57,7 +57,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 	String[] noduleStatus = {"Benign", "Malignant", "Unknown"};
 	String[] pathologyType = {
 		"AAH", 
-		"Atyp bronc prolif", 
+		"Atyp bronch prolif", 
 		"AIS", 
 		"MIA", 
 		"Unspec. non-small cell", 
