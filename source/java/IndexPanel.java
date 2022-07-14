@@ -226,13 +226,13 @@ public class IndexPanel extends JPanel implements ActionListener {
 				else {
 					if (entries[i] == null) System.out.println("ListPanel.list: entry["+i+"] == null");
 					else {
-						if (entries[i].name != null) System.out.println("ListPanel.list: entry["+i+"].name == null");
-						if (entries[i].id != null) System.out.println("ListPanel.list: entry["+i+"].id == null");
+						if (entries[i].name == null) System.out.println("ListPanel.list: entry["+i+"].name == null");
+						if (entries[i].id == null) System.out.println("ListPanel.list: entry["+i+"].id == null");
 					}
 					if (entries[i+1] == null) System.out.println("ListPanel.list: entry["+(i+1)+"] == null");
 					else {
-						if (entries[i+1].name != null) System.out.println("ListPanel.list: entry["+(i+1)+"].name == null");
-						if (entries[i+1].id != null) System.out.println("ListPanel.list: entry["+(i+1)+"].id == null");
+						if (entries[i+1].name == null) System.out.println("ListPanel.list: entry["+(i+1)+"].name == null");
+						if (entries[i+1].id == null) System.out.println("ListPanel.list: entry["+(i+1)+"].id == null");
 					}
 				}
 			}
