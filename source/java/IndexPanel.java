@@ -213,12 +213,28 @@ public class IndexPanel extends JPanel implements ActionListener {
 			}
 			panel.add(RowLayout.crlf());
 			for (int i=0; i<entries.length; i+=2) {
-				panel.add(Box.createHorizontalStrut(margin));
-				panel.add(new Label(entries[i+1].name));
-				panel.add(new Label(entries[i+1].id));
-				panel.add(new Label(entries[i].name));
-				panel.add(new Label(entries[i].id));
-				panel.add(RowLayout.crlf());
+				if ((entries[i] != null) && (entries[i+1] != null) 
+					 && (entries[i].name != null) && (entries[i+1].name != null)
+					   && (entries[i].id != null) && (entries[i+1].id != null)) {
+							panel.add(Box.createHorizontalStrut(margin));
+							panel.add(new Label(entries[i+1].name));
+							panel.add(new Label(entries[i+1].id));
+							panel.add(new Label(entries[i].name));
+							panel.add(new Label(entries[i].id));
+							panel.add(RowLayout.crlf());
+				}
+				else {
+					if (entries[i] == null) System.out.println("ListPanel.list: entry["+i+"] == null");
+					else {
+						if (entries[i].name != null) System.out.println("ListPanel.list: entry["+i+"].name == null");
+						if (entries[i].id != null) System.out.println("ListPanel.list: entry["+i+"].id == null");
+					}
+					if (entries[i+1] == null) System.out.println("ListPanel.list: entry["+(i+1)+"] == null");
+					else {
+						if (entries[i+1].name != null) System.out.println("ListPanel.list: entry["+(i+1)+"].name == null");
+						if (entries[i+1].id != null) System.out.println("ListPanel.list: entry["+(i+1)+"].id == null");
+					}
+				}
 			}
 			jsp.setViewportView(panel);
 			revalidate();
