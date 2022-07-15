@@ -33,7 +33,7 @@ import org.w3c.dom.Node;
  */
 public class Deidentifier extends JFrame implements ChangeListener {
 
-    private String					windowTitle = "DeIdentifier - version 7";
+    private String					windowTitle = "DeIdentifier - version 8";
     private MainPanel				mainPanel;
     private JPanel					splitPanel;
     private SourcePanel				sourcePanel;

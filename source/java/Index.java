@@ -140,8 +140,17 @@ public class Index {
 			LinkedList<PatientIndexEntry> list = new LinkedList<PatientIndexEntry>();
 			Object key;
 			while ( (key=fit.next()) != null ) {
-				PatientIndexEntry pie = getInvEntry((String)key);
-				if (pie != null) list.add(pie);
+				PatientIndexEntry invPIE = getInvEntry((String)key);
+				if (invPIE != null) {
+					if (invPIE.id != null) {
+						PatientIndexEntry fwdPIE = getFwdEntry(invPIE.id);
+						if (fwdPIE != null) list.add(invPIE);
+						else {
+							System.out.println("Index.listPatientIndex: getInvEntry returned != null for key \""+((String)key)+"\""); 
+							System.out.println("   but getFwdEntry returned null for id \""+(invPIE.id)+"\""); 
+						}
+					}
+				}
 				else System.out.println("Index.listPatientIndex: getInvEntry returned null for \""+((String)key)+"\""); 
 			}
 			PatientIndexEntry[] entries = new PatientIndexEntry[list.size()];
