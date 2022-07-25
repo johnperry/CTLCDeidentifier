@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import org.apache.log4j.*;
 import org.rsna.ctp.objects.DicomObject;
 import org.rsna.util.JarUtil;
 import org.rsna.util.FileUtil;
@@ -25,6 +26,8 @@ import org.w3c.dom.NodeList;
  * directory set and the relevant metadata file(s).
  */
 public class SubmissionPanel extends JPanel implements ActionListener {
+
+	static final Logger logger = Logger.getLogger(SubmissionPanel.class);
 
 	private HeaderPanel headerPanel;
 	private CenterPanel centerPanel;
@@ -378,7 +381,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		try {
 			reorganizeFiles(currentSelection);
 			centerPanel.removeAll();
-			File[] patients = currentSelection.listFiles(dirsOnly);
+			File[] patients = currentSelection.listFiles(new DBFilter());
 			DicomObject dob = null;
 			for (File patient : patients) {
 				int studyNumber = 1;
@@ -438,6 +441,32 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 		}
 		catch (Exception ex) { ex.printStackTrace(); }
 		centerPanel.revalidate();
+	}
+	
+	class DBFilter implements FileFilter {
+		Index index;
+		public DBFilter() {
+			Index index = Index.getInstance();
+		}
+		public boolean accept(File file) {
+			if (file.isDirectory()) {
+				String anonPtName = file.getName();
+				PatientIndexEntry phiPIE = index.getInvEntry(anonPtName);
+				if (phiPIE != null)  {
+					String phiPtName = phiPIE.name;
+					String phiPtID = phiPIE.id;
+					PatientIndexEntry anonPIE = index.getFwdEntry(phiPtName);
+					if (anonPIE != null) {
+						StudyIndexEntry sie = index.getFwdStudyEntry(phiPtName);
+						if ((sie != null) && (sie.studies.size() != 0)) return true;
+						else logger.warn("Missing or empty forward study entry for "+file);
+					}
+					else logger.warn("Missing forward patient entry for "+file);
+				}
+				else logger.warn("Missing inverse patient entry for "+file);
+			}
+			return false;
+		}
 	}
 	
 	private String getStudyPHI(String phiPatientID, File dir) {
