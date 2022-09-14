@@ -446,7 +446,7 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 	class DBFilter implements FileFilter {
 		Index index;
 		public DBFilter() {
-			Index index = Index.getInstance();
+			index = Index.getInstance();
 		}
 		public boolean accept(File file) {
 			if (file.isDirectory()) {
