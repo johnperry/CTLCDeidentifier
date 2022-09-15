@@ -452,12 +452,15 @@ public class SubmissionPanel extends JPanel implements ActionListener {
 			if (file.isDirectory()) {
 				String anonPtName = file.getName();
 				PatientIndexEntry phiPIE = index.getInvEntry(anonPtName);
+				logger.debug
+				("getInvEntry("+anonPtName+"): "+((phiPIE==null)?"null":phiPIE.toString()));
 				if (phiPIE != null)  {
 					String phiPtName = phiPIE.name;
 					String phiPtID = phiPIE.id;
-					PatientIndexEntry anonPIE = index.getFwdEntry(phiPtName);
+					PatientIndexEntry anonPIE = index.getFwdEntry(phiPtID);
+					logger.debug("getFwdEntry("+phiPtID+"): "+((anonPIE==null)?"null":anonPIE.toString()));
 					if (anonPIE != null) {
-						StudyIndexEntry sie = index.getFwdStudyEntry(phiPtName);
+						StudyIndexEntry sie = index.getFwdStudyEntry(phiPtID);
 						if ((sie != null) && (sie.studies.size() != 0)) return true;
 						else logger.warn("Missing or empty forward study entry for "+file);
 					}
